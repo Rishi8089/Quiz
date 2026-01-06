@@ -25,7 +25,7 @@ export default function App() {
         <Route path="/quizzes/:id" element={<QuizAttempt />} />
 
         {/* Saved results */}
-        <Route path="/results" element={<ResultHistory />} />
+        <Route path="/history" element={<ResultHistory />} />
 
       </Routes>
     </BrowserRouter>

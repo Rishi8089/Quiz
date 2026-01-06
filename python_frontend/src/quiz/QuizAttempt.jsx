@@ -106,7 +106,7 @@ const QuizAttempt = () => {
 
   if (!token) {
     alert("Login first");
-    navigate("/login");
+    navigate("/");
     return;
   }
 
@@ -116,7 +116,7 @@ const QuizAttempt = () => {
       {
         quiz_title: quiz.title,
         score: result.score,
-        total_questions: result.total,
+        total_questions: result.total || result.total_questions,
       },
       {
         headers: {
@@ -127,13 +127,14 @@ const QuizAttempt = () => {
 
     alert("Result saved successfully ✅");
 
-    // 👉 redirect to history page after save
-    navigate("/results");
+    // redirect to user history page
+    navigate("/history");
   } catch (err) {
-    console.log(err.response?.data);
+    console.log("SAVE ERROR:", err.response?.data || err);
     alert("Failed to save result ❌");
   }
 };
+
 
   /* ---------------- LOADING / NOT FOUND ---------------- */
   if (loading) {
