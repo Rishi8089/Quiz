@@ -14,8 +14,8 @@ export default function App() {
       <Routes>
 
         {/* Public pages */}
-        <Route path="/" element={<QuizList />} />
-        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<Login />} />
+        <Route path="/quizlist" element={<QuizList />} />
         <Route path="/register" element={<Register />} />
 
         {/* Quiz pages */}
