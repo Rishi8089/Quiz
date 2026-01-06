@@ -23,7 +23,7 @@ function Register() {
       alert(res.data.message);
 
       // ✅ redirect to root route after successful registration
-      navigate("/");
+      navigate("/quizlist");
     } catch (err) {
       alert(err.response?.data?.error || "Registration failed");
     }
@@ -69,7 +69,7 @@ function Register() {
         <p className="text-center text-white/80 text-sm mt-6">
           Already have an account?{" "}
           <Link
-            to="/login"
+            to="/"
             className="underline hover:text-white font-medium"
           >
             Login

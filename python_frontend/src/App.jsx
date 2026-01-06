@@ -5,7 +5,6 @@ import Register from "./auth/Register";
 
 import QuizList from "./quiz/QuizList";
 import QuizAttempt from "./quiz/QuizAttempt";
-
 import ResultHistory from "./results/ResultHistory";
 
 export default function App() {
@@ -13,15 +12,19 @@ export default function App() {
     <BrowserRouter>
       <Routes>
 
-        {/* Public pages */}
+        {/* Login is now root */}
         <Route path="/" element={<Login />} />
-        <Route path="/quizlist" element={<QuizList />} />
+
+        {/* Register */}
         <Route path="/register" element={<Register />} />
 
-        {/* Quiz pages */}
+        {/* After login go here */}
+        <Route path="/quizlist" element={<QuizList />} />
+
+        {/* Quiz attempt */}
         <Route path="/quizzes/:id" element={<QuizAttempt />} />
 
-        {/* Results history */}
+        {/* Saved results */}
         <Route path="/results" element={<ResultHistory />} />
 
       </Routes>
