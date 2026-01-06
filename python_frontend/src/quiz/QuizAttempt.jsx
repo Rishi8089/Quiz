@@ -12,9 +12,13 @@ const QuizAttempt = () => {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
 
-  const [timeLeft, setTimeLeft] = useState(0); // seconds
+  const [timeLeft, setTimeLeft] = useState(0);
 
-  /* ---------------- FETCH QUIZ ---------------- */
+  // NEW STATE FOR HISTORY
+  const [showHistory, setShowHistory] = useState(false);
+  const [history, setHistory] = useState([]);
+
+  // FETCH QUIZ
   useEffect(() => {
     const fetchQuiz = async () => {
       try {
@@ -22,8 +26,6 @@ const QuizAttempt = () => {
           `http://127.0.0.1:8000/api/quizzes/${id}/`
         );
         setQuiz(res.data);
-
-        // convert minutes → seconds
         setTimeLeft(res.data.duration_minutes * 60);
       } catch (error) {
         console.error("Error loading quiz", error);
@@ -35,7 +37,7 @@ const QuizAttempt = () => {
     fetchQuiz();
   }, [id]);
 
-  /* ---------------- TIMER LOGIC ---------------- */
+  // TIMER
   useEffect(() => {
     if (!timeLeft || result) return;
 
@@ -43,7 +45,7 @@ const QuizAttempt = () => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          handleSubmit(); // auto submit
+          handleSubmit();
           return 0;
         }
         return prev - 1;
@@ -53,7 +55,6 @@ const QuizAttempt = () => {
     return () => clearInterval(timer);
   }, [timeLeft, result]);
 
-  /* ---------------- HELPERS ---------------- */
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
@@ -67,7 +68,7 @@ const QuizAttempt = () => {
     }));
   };
 
-  /* ---------------- SUBMIT QUIZ ---------------- */
+  // SUBMIT QUIZ + AUTO SAVE RESULT
   const handleSubmit = async () => {
     if (submitting) return;
 
@@ -81,62 +82,73 @@ const QuizAttempt = () => {
     try {
       setSubmitting(true);
 
+      // submit answers
       const res = await axios.post(
         `http://127.0.0.1:8000/api/quizzes/${id}/submit/`,
         payload
       );
 
-      setResult(res.data);
+      const quizResult = res.data;
+      setResult(quizResult);
+
+      // auto save
+      const token = localStorage.getItem("access");
+
+      if (token) {
+        await axios.post(
+          "http://127.0.0.1:8000/api/results/save/",
+          {
+            quiz_title: quiz.title,
+            score: quizResult.score,
+            total_questions: quizResult.total,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        console.log("Result auto-saved ✔️");
+      } else {
+        console.log("No token → result not saved");
+      }
     } catch (error) {
+      console.error("Submission failed", error);
       alert("Submission failed");
-      console.error(error);
     } finally {
       setSubmitting(false);
     }
   };
 
-  /* ---------------- SAVE RESULT TO BACKEND ---------------- */
-  const handleSaveResult = async () => {
-  if (!result) {
-    alert("Submit quiz first");
-    return;
-  }
+  // LOAD QUIZ HISTORY
+  const loadHistory = async () => {
+    const token = localStorage.getItem("access");
 
-  const token = localStorage.getItem("access");
+    if (!token) {
+      alert("Login first");
+      navigate("/");
+      return;
+    }
 
-  if (!token) {
-    alert("Login first");
-    navigate("/");
-    return;
-  }
+    try {
+      const res = await axios.get(
+        "http://127.0.0.1:8000/api/results/history/",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-  try {
-    await axios.post(
-      "http://127.0.0.1:8000/api/results/save/",
-      {
-        quiz_title: quiz.title,
-        score: result.score,
-        total_questions: result.total || result.total_questions,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+      setHistory(res.data);
+      setShowHistory(true);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to load history");
+    }
+  };
 
-    alert("Result saved successfully ✅");
-
-    // redirect to user history page
-    navigate("/history");
-  } catch (err) {
-    console.log("SAVE ERROR:", err.response?.data || err);
-    alert("Failed to save result ❌");
-  }
-};
-
-
-  /* ---------------- LOADING / NOT FOUND ---------------- */
+  // LOADING
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-xl text-white">
@@ -153,82 +165,118 @@ const QuizAttempt = () => {
     );
   }
 
-  /* ---------------- RESULT UI ---------------- */
+  // RESULT SCREEN
   if (result) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-green-500 to-emerald-600 flex items-center justify-center p-6">
-        <div className="bg-white/20 backdrop-blur-xl p-8 rounded-2xl shadow-2xl text-center text-white max-w-md w-full">
-          <h2 className="text-3xl font-bold mb-4">Quiz Result 🎉</h2>
+      <div className="min-h-screen bg-slate-900 p-6 text-white">
+        <div className="max-w-2xl mx-auto bg-white/10 p-6 rounded-2xl shadow-lg">
+
+          <h2 className="text-3xl font-bold mb-4 text-center">
+            🎉 Quiz Result
+          </h2>
 
           <p className="text-xl mb-2">Score: {result.score}</p>
           <p className="text-xl mb-2">Total: {result.total}</p>
-          <p className="text-2xl font-semibold mb-6">
+          <p className="text-2xl font-semibold mb-4">
             Percentage: {result.percentage}%
           </p>
 
-          <div className="flex gap-4 justify-center">
+          <div className="flex gap-4 justify-center mb-6">
+
             <button
-              onClick={handleSaveResult}
-              className="bg-blue-600 px-5 py-2 rounded-lg font-semibold text-white hover:bg-blue-700 transition"
+              onClick={loadHistory}
+              className="bg-blue-600 px-5 py-2 rounded-lg font-semibold hover:bg-blue-700"
             >
-              💾 Save Result
+              📜 View Result History
             </button>
 
             <button
-              onClick={() => navigate("/")}
-              className="bg-white px-5 py-2 rounded-lg font-semibold text-green-700 hover:bg-green-100 transition"
+              onClick={() => navigate("/quizlist")}
+              className="bg-green-500 px-5 py-2 rounded-lg font-semibold text-black hover:bg-green-400"
             >
               Back to Quizzes
             </button>
           </div>
+
+          {/* HISTORY BLOCK */}
+          {showHistory && (
+            <div className="mt-4">
+              <h3 className="text-xl font-bold mb-3">
+                🎯 Your Quiz History
+              </h3>
+
+              {history.length === 0 ? (
+                <p>No history yet</p>
+              ) : (
+                <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
+
+                  {history.map((h, index) => (
+                    <div
+                      key={index}
+                      className="bg-black/40 p-4 rounded-xl"
+                    >
+                      <p className="font-semibold">{h.quiz_title}</p>
+
+                      <p>Score: {h.score} / {h.total_questions}</p>
+
+                      <p>Percentage: {h.percentage}%</p>
+
+                      <p className="text-sm text-gray-300">
+                        Taken on: {new Date(h.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                  ))}
+
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );
   }
 
-  /* ---------------- QUIZ UI ---------------- */
+  // QUIZ ATTEMPT UI
   return (
-    <div className="min-h-screen bg-linear-to-br from-indigo-600 via-purple-600 to-pink-500 p-6">
-      <div className="max-w-4xl mx-auto bg-white/20 backdrop-blur-xl rounded-2xl p-8 shadow-2xl">
+    <div className="min-h-screen bg-indigo-700 p-6 text-white">
+      <div className="max-w-4xl mx-auto bg-white/10 p-8 rounded-2xl">
 
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-white">{quiz.title}</h1>
+        <div className="flex justify-between mb-4">
+          <h1 className="text-3xl font-bold">{quiz.title}</h1>
 
-          <div className="bg-red-600 px-4 py-2 rounded-lg text-white font-semibold">
+          <div className="bg-red-600 px-4 py-2 rounded-lg">
             ⏱ {formatTime(timeLeft)}
           </div>
         </div>
 
-        {quiz.questions.map((q, index) => (
+        {quiz.questions.map((q, i) => (
           <div key={q.id} className="mb-6">
-            <h3 className="text-lg font-semibold text-white mb-3">
-              {index + 1}. {q.text}
+            <h3 className="text-lg font-semibold mb-2">
+              {i + 1}. {q.text}
             </h3>
 
-            <div className="space-y-2">
-              {q.options.map((opt) => (
-                <label
-                  key={opt.id}
-                  className="flex items-center gap-3 bg-white/10 p-3 rounded-lg cursor-pointer hover:bg-white/20"
-                >
-                  <input
-                    type="radio"
-                    name={`question-${q.id}`}
-                    checked={answers[q.id] === opt.id}
-                    onChange={() => handleSelect(q.id, opt.id)}
-                    className="accent-purple-600"
-                  />
-                  <span className="text-white">{opt.text}</span>
-                </label>
-              ))}
-            </div>
+            {q.options.map((opt) => (
+              <label
+                key={opt.id}
+                className="block bg-white/10 p-2 rounded mb-2 cursor-pointer"
+              >
+                <input
+                  type="radio"
+                  name={`q-${q.id}`}
+                  checked={answers[q.id] === opt.id}
+                  onChange={() => handleSelect(q.id, opt.id)}
+                  className="mr-2"
+                />
+                {opt.text}
+              </label>
+            ))}
           </div>
         ))}
 
         <button
           onClick={handleSubmit}
           disabled={submitting}
-          className="w-full mt-6 bg-white text-purple-700 py-3 rounded-xl font-semibold text-lg hover:bg-purple-100 disabled:opacity-50"
+          className="w-full bg-white text-purple-700 py-3 rounded-xl font-semibold text-lg"
         >
           {submitting ? "Submitting..." : "Submit Quiz"}
         </button>

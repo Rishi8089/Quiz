@@ -19,10 +19,10 @@ const QuizList = () => {
       localStorage.clear();
       sessionStorage.clear();
 
-      navigate("/login");
+      navigate("/");
     } catch (error) {
       console.error("Logout failed", error);
-      navigate("/login"); // fallback
+      navigate("/quizlist"); // fallback
     }
   };
 
