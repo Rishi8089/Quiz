@@ -1,31 +1,28 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-import Login from "./auth/Login";
+import Login from "./auth/login";
 import Register from "./auth/Register";
 
 import QuizList from "./quiz/QuizList";
 import QuizAttempt from "./quiz/QuizAttempt";
 
-import Result from "./results/Result";
-import History from "./results/History";
-
-// import AdminDashboard from "./admin/AdminDashboard";
+import ResultHistory from "./results/ResultHistory";
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
 
+        {/* Public pages */}
         <Route path="/" element={<QuizList />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
+        {/* Quiz pages */}
         <Route path="/quizzes/:id" element={<QuizAttempt />} />
 
-        <Route path="/result/:id" element={<Result />} />
-        <Route path="/history" element={<History />} />
-
-        {/* <Route path="/admin" element={<AdminDashboard />} /> */}
+        {/* Results history */}
+        <Route path="/results" element={<ResultHistory />} />
 
       </Routes>
     </BrowserRouter>

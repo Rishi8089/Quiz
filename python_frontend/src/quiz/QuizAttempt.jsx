@@ -23,7 +23,7 @@ const QuizAttempt = () => {
         );
         setQuiz(res.data);
 
-        // ⏱ convert minutes → seconds
+        // convert minutes → seconds
         setTimeLeft(res.data.duration_minutes * 60);
       } catch (error) {
         console.error("Error loading quiz", error);
@@ -67,7 +67,7 @@ const QuizAttempt = () => {
     }));
   };
 
-  /* ---------------- SUBMIT ---------------- */
+  /* ---------------- SUBMIT QUIZ ---------------- */
   const handleSubmit = async () => {
     if (submitting) return;
 
@@ -80,10 +80,12 @@ const QuizAttempt = () => {
 
     try {
       setSubmitting(true);
+
       const res = await axios.post(
         `http://127.0.0.1:8000/api/quizzes/${id}/submit/`,
         payload
       );
+
       setResult(res.data);
     } catch (error) {
       alert("Submission failed");
@@ -93,7 +95,47 @@ const QuizAttempt = () => {
     }
   };
 
-  /* ---------------- STATES ---------------- */
+  /* ---------------- SAVE RESULT TO BACKEND ---------------- */
+  const handleSaveResult = async () => {
+  if (!result) {
+    alert("Submit quiz first");
+    return;
+  }
+
+  const token = localStorage.getItem("access");
+
+  if (!token) {
+    alert("Login first");
+    navigate("/login");
+    return;
+  }
+
+  try {
+    await axios.post(
+      "http://127.0.0.1:8000/api/results/save/",
+      {
+        quiz_title: quiz.title,
+        score: result.score,
+        total_questions: result.total,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    alert("Result saved successfully ✅");
+
+    // 👉 redirect to history page after save
+    navigate("/results");
+  } catch (err) {
+    console.log(err.response?.data);
+    alert("Failed to save result ❌");
+  }
+};
+
+  /* ---------------- LOADING / NOT FOUND ---------------- */
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-xl text-white">
@@ -110,80 +152,47 @@ const QuizAttempt = () => {
     );
   }
 
-const handleSaveResult = async () => {
-  try {
-    await axios.post(
-      "http://127.0.0.1:8000/api/results/save/",
-      {
-        quiz_title: quiz.title,           // ✅ REQUIRED
-        score: result.score,              // ✅ REQUIRED
-        total_questions: result.total,    // ✅ REQUIRED
-      },
-      {
-        withCredentials: true,             // ✅ session auth
-      }
-    );
-    
+  /* ---------------- RESULT UI ---------------- */
+  if (result) {
+    return (
+      <div className="min-h-screen bg-linear-to-br from-green-500 to-emerald-600 flex items-center justify-center p-6">
+        <div className="bg-white/20 backdrop-blur-xl p-8 rounded-2xl shadow-2xl text-center text-white max-w-md w-full">
+          <h2 className="text-3xl font-bold mb-4">Quiz Result 🎉</h2>
 
+          <p className="text-xl mb-2">Score: {result.score}</p>
+          <p className="text-xl mb-2">Total: {result.total}</p>
+          <p className="text-2xl font-semibold mb-6">
+            Percentage: {result.percentage}%
+          </p>
 
-    alert("Result saved successfully ✅");
-  } catch (error) {
-    console.error("Error saving result", error);
-    alert("Failed to save result ❌");
-  }
-};
+          <div className="flex gap-4 justify-center">
+            <button
+              onClick={handleSaveResult}
+              className="bg-blue-600 px-5 py-2 rounded-lg font-semibold text-white hover:bg-blue-700 transition"
+            >
+              💾 Save Result
+            </button>
 
-
-  /* ---------------- RESULT ---------------- */
-if (result) {
-  return (
-    <div className="min-h-screen bg-linear-to-br from-green-500 to-emerald-600 flex items-center justify-center p-6">
-      <div className="bg-white/20 backdrop-blur-xl p-8 rounded-2xl shadow-2xl text-center text-white max-w-md w-full">
-        <h2 className="text-3xl font-bold mb-4">Quiz Result 🎉</h2>
-
-        <p className="text-xl mb-2">Score: {result.score}</p>
-        <p className="text-xl mb-2">Total: {result.total}</p>
-        <p className="text-2xl font-semibold mb-6">
-          Percentage: {result.percentage}%
-        </p>
-
-        <div className="flex gap-4 justify-center">
-          {/* SAVE RESULT */}
-          <button
-            onClick={handleSaveResult}
-            className="
-              bg-blue-600 px-5 py-2 rounded-lg font-semibold text-white
-              hover:bg-blue-700 transition
-            "
-          >
-            💾 Save Result
-          </button>
-
-          {/* BACK TO QUIZZES */}
-          <button
-            onClick={() => navigate("/")}
-            className="
-              bg-white px-5 py-2 rounded-lg font-semibold text-green-700
-              hover:bg-green-100 transition
-            "
-          >
-            Back to Quizzes
-          </button>
+            <button
+              onClick={() => navigate("/")}
+              className="bg-white px-5 py-2 rounded-lg font-semibold text-green-700 hover:bg-green-100 transition"
+            >
+              Back to Quizzes
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
-
+    );
+  }
 
   /* ---------------- QUIZ UI ---------------- */
   return (
     <div className="min-h-screen bg-linear-to-br from-indigo-600 via-purple-600 to-pink-500 p-6">
       <div className="max-w-4xl mx-auto bg-white/20 backdrop-blur-xl rounded-2xl p-8 shadow-2xl">
 
-        {/* ⏱ TIMER */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-white">{quiz.title}</h1>
+
           <div className="bg-red-600 px-4 py-2 rounded-lg text-white font-semibold">
             ⏱ {formatTime(timeLeft)}
           </div>

@@ -5,7 +5,7 @@ import { useNavigate, Link } from "react-router-dom";
 function Login() {
   const [form, setForm] = useState({ username: "", password: "" });
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate(); // ✅ navigation hook
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -14,16 +14,49 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+
     try {
       const res = await loginUser(form);
 
-      // ✅ optional success message
-      alert(res.data.message);
+      // ---------------------------
+      // DEBUG log – helps if issues remain
+      // ---------------------------
+      console.log("LOGIN RESPONSE:", res.data);
 
-      // ✅ redirect to root route after login
+      // ---------------------------
+      // grab tokens regardless of field names
+      // ---------------------------
+      const access =
+        res.data.access ||
+        res.data.access_token ||
+        res.data.token;
+
+      const refresh =
+        res.data.refresh ||
+        res.data.refresh_token ||
+        null;
+
+      if (!access) {
+        alert("Login succeeded but token missing in response ❌");
+        return;
+      }
+
+      // ---------------------------
+      // store tokens for later API calls
+      // ---------------------------
+      localStorage.setItem("access", access);
+
+      if (refresh) {
+        localStorage.setItem("refresh", refresh);
+      }
+
+      alert("Login successful ✅");
+
+      // redirect to home
       navigate("/");
     } catch (err) {
-      alert(err.response?.data?.error || "Login failed");
+      console.error("Login error:", err?.response?.data || err);
+      alert(err?.response?.data?.error || "Login failed ❌");
     } finally {
       setLoading(false);
     }
@@ -38,6 +71,7 @@ function Login() {
         <h2 className="text-3xl font-bold text-white text-center mb-2">
           Welcome Back 👋
         </h2>
+
         <p className="text-sm text-white/80 text-center mb-6">
           Login to your account
         </p>
@@ -61,7 +95,6 @@ function Login() {
           className="w-full px-4 py-3 mb-6 rounded-lg bg-white/90 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-400"
         />
 
-        {/* Button */}
         <button
           type="submit"
           disabled={loading}
@@ -70,7 +103,6 @@ function Login() {
           {loading ? "Logging in..." : "Login"}
         </button>
 
-        {/* Footer */}
         <p className="text-center text-white/80 text-sm mt-6">
           Don't have an account?{" "}
           <Link
